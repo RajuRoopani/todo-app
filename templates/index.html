@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyFlow — Student Productivity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── CSS Custom Properties ──────────────────────────────────────────── */
+    :root {
+      --bg-base:      #0d0f14;
+      --bg-surface:   #161920;
+      --bg-elevated:  #1e2130;
+      --bg-overlay:   #252a3a;
+      --accent:       #6c63ff;
+      --accent-dim:   #4a43cc;
+      --accent-glow:  rgba(108,99,255,0.18);
+      --priority-urgent: #ef4444;
+      --priority-high:   #f97316;
+      --priority-medium: #eab308;
+      --priority-low:    #22c55e;
+      --status-todo:       #64748b;
+      --status-in-progress:#6c63ff;
+      --status-done:       #22c55e;
+      --status-overdue:    #ef4444;
+      --subj-0: #6c63ff; --subj-1: #06b6d4; --subj-2: #ec4899; --subj-3: #f97316;
+      --subj-4: #22c55e; --subj-5: #f59e0b; --subj-6: #84cc16; --subj-7: #14b8a6;
+      --subj-8: #a78bfa; --subj-9: #fb7185;
+      --text-primary:  #f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:    #475569;
+      --text-inverse:  #0d0f14;
+      --border:       rgba(255,255,255,0.07);
+      --border-focus: #6c63ff;
+      --danger:       #ef4444;
+      --danger-dim:   #b91c1c;
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+      --radius-xl:  24px;
+      --radius-full: 999px;
+      --shadow-card:  0 2px 8px rgba(0,0,0,0.35);
+      --shadow-panel: 0 8px 32px rgba(0,0,0,0.55);
+      --shadow-focus: 0 0 0 3px var(--accent-glow);
+      --text-xs:   0.70rem;
+      --text-sm:   0.80rem;
+      --text-base: 0.925rem;
+      --text-md:   1.05rem;
+      --text-lg:   1.25rem;
+      --text-xl:   1.6rem;
+      --text-2xl:  2.2rem;
+      --text-3xl:  3.5rem;
+    }
+
+    /* ── Reset & Base ───────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      font-size: var(--text-base);
+      line-height: 1.5;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input, select, textarea { font-family: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Shimmer Keyframe ───────────────────────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes pomoPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    @keyframes greenFlash { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(34,197,94,0.35); } }
+
+    /* ── Sticky Nav ─────────────────────────────────────────────────────── */
+    .sp-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .sp-nav__header {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px; padding: 0 24px;
+    }
+    .sp-nav__brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: var(--text-md); font-weight: 700; color: var(--text-primary);
+    }
+    .sp-nav__user-area {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sp-nav__user-input {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      padding: 6px 10px; font-size: var(--text-sm); width: 160px;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .sp-nav__user-input:focus { border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+    .sp-nav__user-label {
+      font-size: var(--text-sm); color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
+    }
+
+    /* ── Tab Bar ────────────────────────────────────────────────────────── */
+    .sp-tabbar {
+      display: flex; align-items: flex-end;
+      height: 48px; padding: 0 16px;
+      overflow-x: auto; scrollbar-width: none;
+      border-top: 1px solid var(--border);
+    }
+    .sp-tabbar::-webkit-scrollbar { display: none; }
+    .sp-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 16px; height: 100%;
+      font-size: var(--text-sm); font-weight: 500;
+      color: var(--text-secondary); white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 200ms ease, border-color 200ms ease;
+      flex-shrink: 0; position: relative;
+    }
+    .sp-tab:hover { color: var(--text-primary); }
+    .sp-tab--active { color: var(--accent); border-bottom-color: var(--accent); }
+    .sp-tab__dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--danger);
+      display: none; animation: pulse 1.2s infinite;
+    }
+    .sp-tab__dot--visible { display: block; }
+
+    /* ── Main Content ───────────────────────────────────────────────────── */
+    .sp-main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .sp-view { display: none; animation: fadeIn 150ms ease; }
+    .sp-view--active { display: block; }
+
+    /* ── Cards ──────────────────────────────────────────────────────────── */
+    .sp-card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 16px;
+      box-shadow: var(--shadow-card);
+      transition: background 150ms ease, box-shadow 150ms ease;
+    }
+    .sp-card--elevated { background: var(--bg-elevated); }
+    .sp-card:hover:not(.sp-card--no-hover) { background: var(--bg-elevated); box-shadow: var(--shadow-card); }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+    .sp-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border-radius: var(--radius-sm); font-size: var(--text-base); font-weight: 600;
+      padding: 8px 16px; height: 40px; min-width: 80px;
+      transition: filter 150ms ease, box-shadow 150ms ease, background 150ms ease;
+      outline: none; white-space: nowrap;
+    }
+    .sp-btn:focus-visible { box-shadow: var(--shadow-focus); }
+    .sp-btn:hover { filter: brightness(0.88); }
+    .sp-btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+    .sp-btn--primary { background: var(--accent); color: #fff; }
+    .sp-btn--ghost {
+      background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .sp-btn--ghost:hover { background: var(--bg-elevated); color: var(--text-primary); filter: none; }
+    .sp-btn--danger { background: var(--danger); color: #fff; }
+    .sp-btn--danger:hover { background: var(--danger-dim); filter: none; }
+    .sp-btn--sm { height: 32px; padding: 4px 10px; font-size: var(--text-sm); min-width: 0; }
+    .sp-btn--icon { width: 32px; height: 32px; padding: 0; min-width: 0; border-radius: var(--radius-sm); }
+
+    /* ── Inputs ─────────────────────────────────────────────────────────── */
+    .sp-input {
+      width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      padding: 10px 12px; font-size: var(--text-base);
+      outline: none; transition: border-color 150ms ease, box-shadow 150ms ease;
+      height: 40px;
+    }
+    .sp-input:focus { border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+    .sp-input--error { border-color: var(--danger) !important; }
+    .sp-input::placeholder { color: var(--text-muted); }
+    textarea.sp-input { height: auto; min-height: 72px; resize: vertical; }
+    select.sp-input { appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+      padding-right: 30px;
+    }
+
+    /* ── Badges ─────────────────────────────────────────────────────────── */
+    .sp-badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: var(--radius-full);
+      font-size: var(--text-xs); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .sp-badge--urgent   { background: #ef4444; color: #fff; }
+    .sp-badge--high     { background: #f97316; color: #fff; }
+    .sp-badge--medium   { background: #eab308; color: var(--text-inverse); }
+    .sp-badge--low      { background: #22c55e; color: var(--text-inverse); }
+    .sp-badge--todo     { background: #64748b; color: #fff; }
+    .sp-badge--in_progress { background: #6c63ff; color: #fff; }
+    .sp-badge--done     { background: #22c55e; color: var(--text-inverse); }
+    .sp-badge--overdue  { background: #ef4444; color: #fff; }
+    .sp-badge--cat      { background: var(--bg-overlay); color: var(--text-secondary); }
+
+    /* ── Error / Empty / Loading ─────────────────────────────────────────── */
+    .sp-error-banner {
+      background: rgba(239,68,68,0.1); border-left: 3px solid var(--danger);
+      border-radius: var(--radius-sm); padding: 12px 16px;
+      color: var(--text-primary); font-size: var(--text-sm);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    .sp-error-banner__retry {
+      margin-left: auto; color: var(--accent); cursor: pointer;
+      font-weight: 600; background: none; border: none; font-size: var(--text-sm);
+    }
+    .sp-empty {
+      text-align: center; padding: 48px 24px;
+      color: var(--text-secondary); display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+    }
+    .sp-empty__icon { font-size: 2.5rem; }
+    .sp-empty__title { font-size: var(--text-lg); color: var(--text-primary); font-weight: 600; }
+    .sp-empty__sub { font-size: var(--text-sm); color: var(--text-muted); }
+
+    /* Skeleton shimmer */
+    .sp-skeleton {
+      background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+      border-radius: var(--radius-sm);
+    }
+    .sp-skeleton--card { height: 80px; margin-bottom: 8px; border-radius: var(--radius-md); }
+    .sp-skeleton--line { height: 16px; margin-bottom: 6px; }
+    .sp-skeleton--short { width: 60%; }
+
+    /* Spinner */
+    .sp-spinner {
+      width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: inline-block; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Field error text */
+    .sp-field-error { color: var(--danger); font-size: var(--text-xs); margin-top: 4px; display: none; }
+    .sp-field-error--visible { display: block; }
+
+    /* ── Progress Bar ────────────────────────────────────────────────────── */
+    .sp-bar {
+      background: var(--bg-overlay); border-radius: var(--radius-full);
+      overflow: hidden; position: relative;
+    }
+    .sp-bar__fill {
+      height: 100%; border-radius: var(--radius-full);
+      transition: width 600ms cubic-bezier(0.4,0,0.2,1);
+      width: 0%;
+    }
+
+    /* ── Dashboard ───────────────────────────────────────────────────────── */
+    .sp-stats-grid {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px;
+    }
+    .sp-stat {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 16px;
+      box-shadow: var(--shadow-card); min-height: 96px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      border-left: 3px solid transparent;
+      transition: background 150ms ease, box-shadow 150ms ease;
+    }
+    .sp-stat:hover { background: var(--bg-elevated); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+    .sp-stat--total     { border-left-color: var(--accent); }
+    .sp-stat--completed { border-left-color: var(--status-done); }
+    .sp-stat--pending   { border-left-color: var(--status-in-progress); }
+    .sp-stat--overdue   { border-left-color: var(--status-overdue); }
+    .sp-stat__label {
+      font-size: var(--text-xs); color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;
+    }
+    .sp-stat__value { font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary); }
+
+    .sp-dash-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+    /* Streak widget */
+    .sp-streak { border-left: 3px solid #f97316; }
+    .sp-streak__header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .sp-streak__icon { font-size: 1.4rem; }
+    .sp-streak__title { font-size: var(--text-md); font-weight: 600; }
+    .sp-streak__bar { height: 6px; margin-top: 8px; }
+
+    /* Today's focus */
+    .sp-focus__row { display: flex; flex-direction: column; gap: 6px; }
+    .sp-focus__stat { font-size: var(--text-base); color: var(--text-secondary); }
+    .sp-focus__stat strong { color: var(--text-primary); }
+
+    /* Recent tasks */
+    .sp-recent-task-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      min-height: 44px;
+    }
+    .sp-recent-task-row:last-child { border-bottom: none; }
+    .sp-recent-task-row:hover { background: var(--bg-elevated); border-radius: var(--radius-sm); padding-left: 8px; padding-right: 8px; }
+    .sp-recent-task-row__title {
+      flex: 1; font-size: var(--text-base); color: var(--text-primary); min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .sp-recent-task-row--done .sp-recent-task-row__title {
+      text-decoration: line-through; color: var(--text-muted); opacity: 0.65;
+    }
+    .sp-recent-task-row__due { font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; }
+    .sp-recent-task-row--overdue .sp-recent-task-row__due { color: var(--danger); font-weight: 600; }
+
+    /* ── Tasks View ──────────────────────────────────────────────────────── */
+    .sp-filter-bar {
+      background: var(--bg-surface); border-bottom: 1px solid var(--border);
+      padding: 12px 24px; display: flex; gap: 8px; flex-wrap: wrap;
+      position: sticky; top: 104px; z-index: 50;
+    }
+    .sp-filter-bar .sp-input { height: 36px; padding: 0 12px; }
+    .sp-filter-bar .sp-input--search { flex: 1; min-width: 160px; }
+
+    /* Task card */
+    .sp-task-card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 14px 16px;
+      margin-bottom: 8px; border-left: 4px solid transparent;
+      transition: background 150ms ease, box-shadow 150ms ease;
+      animation: slideUp 250ms ease-out;
+    }
+    .sp-task-card:hover:not(.sp-task-card--done) { background: var(--bg-elevated); box-shadow: var(--shadow-card); }
+    .sp-task-card--urgent     { border-left-color: var(--priority-urgent); }
+    .sp-task-card--high       { border-left-color: var(--priority-high); }
+    .sp-task-card--medium     { border-left-color: var(--priority-medium); }
+    .sp-task-card--low        { border-left-color: var(--priority-low); }
+    .sp-task-card--done       { border-left-color: var(--status-done); opacity: 0.72; }
+    .sp-task-card--overdue    { border-left-color: var(--danger); }
+    .sp-task-card--exit {
+      animation: none; opacity: 0; max-height: 0; margin: 0; padding: 0;
+      overflow: hidden; transition: opacity 200ms ease, max-height 200ms ease, margin 200ms ease, padding 200ms ease;
+    }
+    .sp-task-card__row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .sp-task-card__title {
+      font-size: var(--text-md); font-weight: 500; color: var(--text-primary);
+      flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .sp-task-card--done .sp-task-card__title { text-decoration: line-through; color: var(--text-muted); }
+    .sp-task-card__due { font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; }
+    .sp-task-card__due--overdue { color: var(--danger); font-weight: 600; }
+    .sp-task-card__row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sp-task-card__meta { font-size: var(--text-sm); color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+    .sp-task-card__actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+    /* Subtask accordion */
+    .sp-subtasks { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+    .sp-subtask-toggle {
+      background: none; border: none; color: var(--text-secondary);
+      font-size: var(--text-sm); cursor: pointer; display: flex; align-items: center; gap: 4px;
+      padding: 0; margin-bottom: 8px;
+    }
+    .sp-subtask-toggle:hover { color: var(--text-primary); }
+    .sp-subtask-list { display: none; }
+    .sp-subtask-list--open { display: block; }
+    .sp-subtask-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; font-size: var(--text-sm); color: var(--text-secondary);
+    }
+    .sp-subtask-item input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+    .sp-subtask-item--done { text-decoration: line-through; color: var(--text-muted); }
+
+    /* ── Slide-In Panel ──────────────────────────────────────────────────── */
+    .sp-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      opacity: 0; pointer-events: none; z-index: 200;
+      transition: opacity 200ms ease;
+    }
+    .sp-overlay--visible { opacity: 1; pointer-events: all; }
+    .sp-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 400px;
+      background: var(--bg-surface); border-left: 1px solid var(--border);
+      box-shadow: var(--shadow-panel); z-index: 201;
+      display: flex; flex-direction: column;
+      transform: translateX(400px);
+      transition: transform 280ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .sp-panel--open { transform: translateX(0); }
+    .sp-panel__header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sp-panel__title { font-size: var(--text-lg); font-weight: 600; }
+    .sp-panel__body { flex: 1; overflow-y: auto; padding: 20px; }
+    .sp-panel__footer {
+      padding: 12px 16px; border-top: 1px solid var(--border);
+      background: var(--bg-surface); display: flex; gap: 8px;
+      justify-content: flex-end; flex-shrink: 0;
+    }
+    .sp-form-field { margin-bottom: 16px; }
+    .sp-form-field label {
+      display: block; font-size: var(--text-sm); font-weight: 500;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .sp-form-field label .sp-req { color: var(--danger); margin-left: 2px; }
+    .sp-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Subtask input rows inside panel */
+    .sp-subtask-input-row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    .sp-subtask-input-row .sp-input { height: 34px; }
+    .sp-add-subtask-btn {
+      width: 100%; border: 1px dashed var(--border); border-radius: var(--radius-sm);
+      padding: 8px; color: var(--text-muted); font-size: var(--text-sm);
+      background: none; cursor: pointer; text-align: center;
+      transition: border-color 150ms, color 150ms;
+    }
+    .sp-add-subtask-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Study Sessions ──────────────────────────────────────────────────── */
+    .sp-sessions-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .sp-session-row {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 4px;
+      transition: background 150ms ease;
+    }
+    .sp-session-row:hover { background: var(--bg-elevated); }
+    .sp-session-row__line1 { display: flex; align-items: center; gap: 8px; }
+    .sp-session-row__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sp-session-row__subj { font-weight: 600; font-size: var(--text-base); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sp-session-row__dur { font-weight: 700; font-size: var(--text-base); }
+    .sp-session-row__ts { font-size: var(--text-sm); color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+    .sp-session-row__notes { font-size: var(--text-sm); color: var(--text-secondary); font-style: italic; padding-left: 16px; }
+    .sp-session-row__actions { margin-left: 8px; }
+    .sp-bar-row { display: flex; align-items: center; gap: 8px; height: 36px; }
+    .sp-bar-row__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sp-bar-row__label { font-size: var(--text-sm); color: var(--text-secondary); width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+    .sp-bar-row__track { flex: 1; }
+    .sp-bar-row__time { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; min-width: 50px; text-align: right; }
+
+    /* ── Analytics ───────────────────────────────────────────────────────── */
+    .sp-analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .sp-completion-bar { flex: 1; height: 14px; }
+    .sp-completion-bar .sp-bar__fill {
+      background: linear-gradient(90deg, var(--accent), #06b6d4);
+      transition: width 800ms ease-out;
+    }
+    .sp-analytics-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .sp-analytics-row__label { font-size: var(--text-sm); color: var(--text-secondary); width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sp-analytics-row__track { flex: 1; height: 10px; }
+    .sp-analytics-row__count { font-size: var(--text-sm); color: var(--text-muted); min-width: 48px; text-align: right; }
+    .sp-streak-panel__item { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: var(--text-base); }
+    .sp-streak-panel__item strong { color: var(--text-primary); margin-left: auto; font-size: var(--text-md); }
+
+    /* ── Pomodoro ────────────────────────────────────────────────────────── */
+    .sp-pomo-wrap { max-width: 400px; margin: 0 auto; text-align: center; }
+    .sp-timer { width: 240px; height: 240px; margin: 0 auto 24px; position: relative; border-radius: var(--radius-xl); }
+    .sp-timer svg { width: 100%; height: 100%; }
+    .sp-timer__text {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .sp-timer__time {
+      font-size: var(--text-3xl); font-weight: 700; color: var(--text-primary);
+      letter-spacing: 2px; line-height: 1.1;
+    }
+    .sp-timer__label { font-size: var(--text-sm); color: var(--text-muted); margin-top: 4px; }
+    .sp-timer__time--warning { color: var(--danger); }
+    .sp-pomo-btns { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; }
+    .sp-pomo-btn-main { width: 140px; height: 48px; font-size: var(--text-md); }
+    .sp-pomo-stats-row {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 8px; max-width: 320px; margin: 32px auto 0;
+    }
+    .sp-pomo-stats-row__item { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); color: var(--text-secondary); }
+    .sp-pomo-stats-row__item strong { color: var(--text-primary); }
+
+    /* ── Subjects ────────────────────────────────────────────────────────── */
+    .sp-subject-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      transition: background 150ms ease;
+    }
+    .sp-subject-item:last-child { border-bottom: none; }
+    .sp-subject-item:hover { background: var(--bg-elevated); }
+    .sp-subject-item__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sp-subject-item__name { flex: 1; font-size: var(--text-md); color: var(--text-primary); }
+    .sp-subject-item__del { opacity: 0; transition: opacity 150ms; }
+    .sp-subject-item:hover .sp-subject-item__del { opacity: 1; }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 767px) {
+      .sp-main { padding: 16px; }
+      .sp-stats-grid { grid-template-columns: 1fr 1fr; }
+      .sp-dash-row { grid-template-columns: 1fr; }
+      .sp-sessions-layout { grid-template-columns: 1fr; }
+      .sp-analytics-grid { grid-template-columns: 1fr; }
+      .sp-form-row { grid-template-columns: 1fr; }
+      .sp-filter-bar { padding: 10px 16px; top: 104px; }
+      .sp-panel {
+        width: 100vw; top: auto; border-left: none;
+        border-top: 1px solid var(--border);
+        transform: translateY(100%); max-height: 90vh;
+        transition: transform 280ms cubic-bezier(0.4,0,0.2,1);
+      }
+      .sp-panel--open { transform: translateY(0); }
+      .sp-tab { padding: 0 10px; }
+      .sp-subject-item__del { opacity: 1; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .sp-stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 400px) {
+      .sp-tab { padding: 0 8px; font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sticky Navigation ───────────────────────────────────────────────── -->
+<nav class="sp-nav" role="navigation" aria-label="Main navigation">
+  <div class="sp-nav__header">
+    <div class="sp-nav__brand">📚 StudyFlow</div>
+    <div class="sp-nav__user-area">
+      <input
+        id="sp-username-input" type="text"
+        class="sp-nav__user-input" placeholder="Enter username…"
+        aria-label="Username"
+        onkeydown="if(event.key==='Enter') loadUser()"
+      />
+      <button class="sp-btn sp-btn--primary sp-btn--sm" onclick="loadUser()" id="sp-load-btn">Load</button>
+      <span id="sp-user-label" class="sp-nav__user-label" aria-live="polite"></span>
+    </div>
+  </div>
+  <div class="sp-tabbar" role="tablist" aria-label="Views">
+    <button class="sp-tab sp-tab--active" role="tab" aria-selected="true"  data-view="dashboard" onclick="switchView('dashboard', this)">Dashboard</button>
+    <button class="sp-tab" role="tab" aria-selected="false" data-view="tasks"    onclick="switchView('tasks', this)">Tasks</button>
+    <button class="sp-tab" role="tab" aria-selected="false" data-view="sessions" onclick="switchView('sessions', this)">
+      <span class="sp-tab__mob-label">Sessions</span>Study Sessions
+    </button>
+    <button class="sp-tab" role="tab" aria-selected="false" data-view="analytics" onclick="switchView('analytics', this)">
+      <span class="sp-tab__mob-label">Stats</span>Analytics
+    </button>
+    <button class="sp-tab" role="tab" aria-selected="false" data-view="pomodoro" onclick="switchView('pomodoro', this)">
+      🍅 Pomodoro <span class="sp-tab__dot" id="sp-pomo-dot" aria-hidden="true"></span>
+    </button>
+    <button class="sp-tab" role="tab" aria-selected="false" data-view="subjects" onclick="switchView('subjects', this)">Subjects</button>
+  </div>
+</nav>
+
+<!-- ── Slide-In Panel Overlay ─────────────────────────────────────────── -->
+<div class="sp-overlay" id="sp-overlay" onclick="closePanel()" aria-hidden="true"></div>
+
+<!-- ── Task Create/Edit Panel ─────────────────────────────────────────── -->
+<aside class="sp-panel" id="sp-task-panel" role="dialog" aria-modal="true" aria-labelledby="sp-panel-title">
+  <div class="sp-panel__header">
+    <span class="sp-panel__title" id="sp-panel-title">New Task</span>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" onclick="closePanel()" aria-label="Close panel">✕</button>
+  </div>
+  <div class="sp-panel__body">
+    <div id="sp-panel-error"></div>
+    <div class="sp-form-field">
+      <label for="sp-task-title">Title<span class="sp-req">*</span></label>
+      <input class="sp-input" id="sp-task-title" type="text" placeholder="Task title…" maxlength="256" />
+      <div class="sp-field-error" id="sp-title-err">Title is required</div>
+    </div>
+    <div class="sp-form-field">
+      <label for="sp-task-desc">Description</label>
+      <textarea class="sp-input" id="sp-task-desc" placeholder="Optional description…" maxlength="2048"></textarea>
+    </div>
+    <div class="sp-form-row">
+      <div class="sp-form-field">
+        <label for="sp-task-priority">Priority<span class="sp-req">*</span></label>
+        <select class="sp-input" id="sp-task-priority">
+          <option value="">Select…</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <div class="sp-field-error" id="sp-priority-err">Priority is required</div>
+      </div>
+      <div class="sp-form-field">
+        <label for="sp-task-category">Category<span class="sp-req">*</span></label>
+        <select class="sp-input" id="sp-task-category">
+          <option value="">Select…</option>
+          <option value="study">Study</option>
+          <option value="personal">Personal</option>
+          <option value="project">Project</option>
+          <option value="exam">Exam</option>
+        </select>
+        <div class="sp-field-error" id="sp-category-err">Category is required</div>
+      </div>
+    </div>
+    <div class="sp-form-row">
+      <div class="sp-form-field">
+        <label for="sp-task-due">Due Date</label>
+        <input class="sp-input" id="sp-task-due" type="datetime-local" />
+      </div>
+      <div class="sp-form-field">
+        <label for="sp-task-subject">Subject</label>
+        <select class="sp-input" id="sp-task-subject">
+          <option value="">None</option>
+        </select>
+      </div>
+    </div>
+    <div class="sp-form-field">
+      <label for="sp-task-tags">Tags <span style="color:var(--text-muted);font-weight:400">(comma-separated)</span></label>
+      <input class="sp-input" id="sp-task-tags" type="text" placeholder="e.g. homework, urgent" />
+    </div>
+    <div class="sp-form-field">
+      <label>Subtasks</label>
+      <div id="sp-subtask-inputs"></div>
+      <button class="sp-add-subtask-btn" type="button" onclick="addSubtaskInput()">+ Add subtask</button>
+    </div>
+  </div>
+  <div class="sp-panel__footer">
+    <button class="sp-btn sp-btn--ghost" onclick="closePanel()">Cancel</button>
+    <button class="sp-btn sp-btn--primary" id="sp-save-task-btn" onclick="saveTask()">Save Task</button>
+  </div>
+</aside>
+
+<!-- ── Main Content ────────────────────────────────────────────────────── -->
+<main class="sp-main" id="sp-main">
+
+  <!-- ── DASHBOARD VIEW ─────────────────────────────────────────────── -->
+  <section class="sp-view sp-view--active" id="sp-view-dashboard" role="tabpanel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h1 id="sp-greeting" style="font-size:var(--text-lg);font-weight:600;"></h1>
+        <div id="sp-date" style="font-size:var(--text-sm);color:var(--text-muted);margin-top:2px;"></div>
+      </div>
+      <button class="sp-btn sp-btn--primary" onclick="openPanel()">+ New Task</button>
+    </div>
+    <div id="sp-dash-error"></div>
+
+    <!-- Stat cards -->
+    <div class="sp-stats-grid" id="sp-stats-grid">
+      <div class="sp-skeleton sp-skeleton--card"></div>
+      <div class="sp-skeleton sp-skeleton--card"></div>
+      <div class="sp-skeleton sp-skeleton--card"></div>
+      <div class="sp-skeleton sp-skeleton--card"></div>
+    </div>
+
+    <!-- Streak + Today Focus row -->
+    <div class="sp-dash-row">
+      <div class="sp-card sp-streak sp-card--no-hover" id="sp-streak-card">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+      </div>
+      <div class="sp-card sp-card--no-hover" id="sp-focus-card">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+      </div>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="sp-card sp-card--no-hover">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h2 style="font-size:var(--text-md);font-weight:600;">Recent Tasks</h2>
+        <button class="sp-btn sp-btn--ghost sp-btn--sm" onclick="switchView('tasks', document.querySelector('[data-view=tasks]'))">View All →</button>
+      </div>
+      <div id="sp-recent-tasks">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TASKS VIEW ──────────────────────────────────────────────────── -->
+  <section class="sp-view" id="sp-view-tasks" role="tabpanel">
+    <div class="sp-filter-bar" id="sp-filter-bar">
+      <select class="sp-input" id="sp-filter-status" style="width:130px;" onchange="filterTasks()" aria-label="Filter by status">
+        <option value="">All Statuses</option>
+        <option value="todo">To-Do</option>
+        <option value="in_progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+      <select class="sp-input" id="sp-filter-priority" style="width:130px;" onchange="filterTasks()" aria-label="Filter by priority">
+        <option value="">All Priorities</option>
+        <option value="urgent">Urgent</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select class="sp-input" id="sp-filter-category" style="width:130px;" onchange="filterTasks()" aria-label="Filter by category">
+        <option value="">All Categories</option>
+        <option value="study">Study</option>
+        <option value="personal">Personal</option>
+        <option value="project">Project</option>
+        <option value="exam">Exam</option>
+      </select>
+      <input class="sp-input sp-input--search" id="sp-filter-search" type="text"
+        placeholder="🔍 Search tasks…" oninput="filterTasks()" aria-label="Search tasks" />
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 12px;">
+      <h1 style="font-size:var(--text-lg);font-weight:600;">
+        Tasks <span id="sp-tasks-count" style="color:var(--text-muted);font-size:var(--text-base);font-weight:400;"></span>
+      </h1>
+      <button class="sp-btn sp-btn--primary" onclick="openPanel()">+ New Task</button>
+    </div>
+    <div id="sp-tasks-error"></div>
+    <div id="sp-tasks-list">
+      <div class="sp-skeleton sp-skeleton--card"></div>
+      <div class="sp-skeleton sp-skeleton--card"></div>
+      <div class="sp-skeleton sp-skeleton--card"></div>
+    </div>
+  </section>
+
+  <!-- ── STUDY SESSIONS VIEW ────────────────────────────────────────── -->
+  <section class="sp-view" id="sp-view-sessions" role="tabpanel">
+    <h1 style="font-size:var(--text-lg);font-weight:600;margin-bottom:16px;">Study Sessions</h1>
+    <div id="sp-sessions-error"></div>
+
+    <!-- Log form -->
+    <div class="sp-card sp-card--no-hover" style="margin-bottom:20px;">
+      <h2 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">Log New Session</h2>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:0 0 180px;">
+          <label style="font-size:var(--text-sm);color:var(--text-secondary);display:block;margin-bottom:4px;">Subject<span style="color:var(--danger);">*</span></label>
+          <select class="sp-input" id="sp-sess-subject" aria-label="Subject">
+            <option value="">Select subject…</option>
+          </select>
+          <div class="sp-field-error" id="sp-sess-subj-err">Subject required</div>
+        </div>
+        <div style="flex:0 0 110px;">
+          <label style="font-size:var(--text-sm);color:var(--text-secondary);display:block;margin-bottom:4px;">Duration (min)<span style="color:var(--danger);">*</span></label>
+          <input class="sp-input" id="sp-sess-dur" type="number" min="1" max="480" placeholder="60" aria-label="Duration in minutes" />
+          <div class="sp-field-error" id="sp-sess-dur-err">1–480 min</div>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label style="font-size:var(--text-sm);color:var(--text-secondary);display:block;margin-bottom:4px;">Notes</label>
+          <input class="sp-input" id="sp-sess-notes" type="text" placeholder="Optional notes…" />
+        </div>
+        <button class="sp-btn sp-btn--primary" id="sp-sess-save-btn" onclick="saveSession()" style="flex-shrink:0;margin-bottom:0;">Save Session</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="sp-sessions-layout" style="margin-bottom:20px;">
+      <div class="sp-card sp-card--no-hover" id="sp-sess-summary">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+      </div>
+      <div class="sp-card sp-card--no-hover" id="sp-sess-by-subject">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="sp-card sp-card--no-hover">
+      <h2 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">
+        Sessions <span id="sp-sess-count" style="color:var(--text-muted);font-size:var(--text-base);font-weight:400;"></span>
+      </h2>
+      <div id="sp-sessions-list">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ANALYTICS VIEW ─────────────────────────────────────────────── -->
+  <section class="sp-view" id="sp-view-analytics" role="tabpanel">
+    <h1 style="font-size:var(--text-lg);font-weight:600;margin-bottom:20px;">Analytics</h1>
+    <div id="sp-analytics-error"></div>
+
+    <!-- Completion rate -->
+    <div class="sp-card sp-card--no-hover" style="margin-bottom:16px;" id="sp-completion-card">
+      <div class="sp-skeleton sp-skeleton--line"></div>
+      <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+    </div>
+
+    <!-- Charts grid -->
+    <div class="sp-analytics-grid" id="sp-analytics-grid">
+      <div class="sp-card sp-card--no-hover" id="sp-cat-chart">
+        <div class="sp-skeleton sp-skeleton--card"></div>
+      </div>
+      <div class="sp-card sp-card--no-hover" id="sp-prio-chart">
+        <div class="sp-skeleton sp-skeleton--card"></div>
+      </div>
+      <div class="sp-card sp-card--no-hover" id="sp-study-hours-chart">
+        <div class="sp-skeleton sp-skeleton--card"></div>
+      </div>
+      <div class="sp-card sp-card--no-hover" id="sp-streak-panel">
+        <div class="sp-skeleton sp-skeleton--card"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── POMODORO VIEW ───────────────────────────────────────────────── -->
+  <section class="sp-view" id="sp-view-pomodoro" role="tabpanel">
+    <h1 style="font-size:var(--text-lg);font-weight:600;margin-bottom:20px;text-align:center;">Pomodoro Timer 🍅</h1>
+    <div class="sp-pomo-wrap">
+      <!-- Task linker -->
+      <div class="sp-card sp-card--no-hover" style="margin-bottom:24px;text-align:left;">
+        <label style="font-size:var(--text-sm);color:var(--text-secondary);display:block;margin-bottom:6px;">Linked Task (optional)</label>
+        <select class="sp-input" id="sp-pomo-task" aria-label="Link a task">
+          <option value="">Select a task…</option>
+        </select>
+      </div>
+
+      <!-- SVG Timer -->
+      <div class="sp-timer" id="sp-timer">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <!-- Track -->
+          <circle cx="100" cy="100" r="90"
+            fill="none" stroke="var(--bg-overlay)" stroke-width="8" />
+          <!-- Progress -->
+          <circle id="sp-pomo-arc" cx="100" cy="100" r="90"
+            fill="none"
+            stroke="var(--accent)"
+            stroke-width="8"
+            stroke-linecap="round"
+            stroke-dasharray="565.49"
+            stroke-dashoffset="0"
+            transform="rotate(-90 100 100)"
+            style="transition:stroke-dashoffset 1s linear,stroke 300ms ease;"
+          />
+        </svg>
+        <div class="sp-timer__text">
+          <div class="sp-timer__time" id="sp-pomo-display" aria-live="polite" aria-label="Timer">25:00</div>
+          <div class="sp-timer__label" id="sp-pomo-sublabel">Focus time</div>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="sp-pomo-btns">
+        <button class="sp-btn sp-btn--primary sp-pomo-btn-main" id="sp-pomo-main-btn" onclick="pomoBtnClick()">Start</button>
+        <button class="sp-btn sp-btn--ghost" id="sp-pomo-complete-btn" onclick="completePomodoro()" style="display:none;border-color:var(--status-done);color:var(--status-done);">Complete</button>
+        <button class="sp-btn sp-btn--ghost" id="sp-pomo-reset-btn" onclick="resetPomodoro()" disabled>Reset</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="sp-pomo-stats-row" id="sp-pomo-stats-row">
+        <div class="sp-pomo-stats-row__item">🍅 Today: <strong id="sp-pomo-today">0</strong> pomodoros</div>
+        <div class="sp-pomo-stats-row__item">⏱ Total focus today: <strong id="sp-pomo-mins">0</strong> min</div>
+        <div class="sp-pomo-stats-row__item" id="sp-pomo-linked-row" style="display:none;">📋 Linked: <strong id="sp-pomo-linked-title"></strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SUBJECTS VIEW ──────────────────────────────────────────────── -->
+  <section class="sp-view" id="sp-view-subjects" role="tabpanel">
+    <h1 style="font-size:var(--text-lg);font-weight:600;margin-bottom:16px;">Subjects</h1>
+    <div id="sp-subjects-error"></div>
+
+    <!-- Add form -->
+    <div class="sp-card sp-card--no-hover" style="margin-bottom:20px;">
+      <h2 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">Add Subject</h2>
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div style="flex:1;">
+          <input class="sp-input" id="sp-subj-name" type="text"
+            placeholder="Subject name…" maxlength="60"
+            onkeydown="if(event.key==='Enter')addSubject()"
+            aria-label="Subject name" />
+          <div class="sp-field-error" id="sp-subj-name-err">Name is required</div>
+        </div>
+        <button class="sp-btn sp-btn--primary" id="sp-subj-add-btn" onclick="addSubject()" style="min-width:140px;">+ Add Subject</button>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div class="sp-card sp-card--no-hover">
+      <h2 style="font-size:var(--text-md);font-weight:600;margin-bottom:4px;">
+        Your Subjects <span id="sp-subj-count" style="color:var(--text-muted);font-size:var(--text-base);font-weight:400;"></span>
+      </h2>
+      <div id="sp-subjects-list">
+        <div class="sp-skeleton sp-skeleton--line"></div>
+        <div class="sp-skeleton sp-skeleton--line sp-skeleton--short"></div>
+      </div>
+    </div>
+  </section>
+
+</main><!-- end sp-main -->
+
+<!-- ── JAVASCRIPT ─────────────────────────────────────────────────────── -->
+<script>
+'use strict';
+/* ─── Global State ─────────────────────────────────────────────────────── */
+let currentUser   = null;
+let allTasks      = [];     // full task list for client-side filter
+let allSubjects   = [];     // cached subjects
+let editTaskId    = null;   // null = create mode, string = edit mode
+let subtaskIds    = {};     // taskId -> [subtask objects]
+let pomoState     = 'idle'; // idle | running | paused
+let pomoInterval  = null;
+let pomoSessionId = null;
+let pomoRemaining = 25 * 60; // seconds
+let pomoResetTimer = null;
+
+const CIRCUMFERENCE = 565.49;
+
+/* ─── API helper ───────────────────────────────────────────────────────── */
+async function api(method, path, body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== null) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || res.statusText || `HTTP ${res.status}`);
+  return data;
+}
+
+/* ─── Tab Switching ────────────────────────────────────────────────────── */
+function switchView(name, btn) {
+  document.querySelectorAll('.sp-view').forEach(v => v.classList.remove('sp-view--active'));
+  document.querySelectorAll('.sp-tab').forEach(t => { t.classList.remove('sp-tab--active'); t.setAttribute('aria-selected','false'); });
+  document.getElementById('sp-view-' + name).classList.add('sp-view--active');
+  btn.classList.add('sp-tab--active');
+  btn.setAttribute('aria-selected','true');
+  if (currentUser) refreshView(name);
+}
+
+function refreshView(name) {
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'tasks')     loadTasks();
+  if (name === 'sessions')  loadSessions();
+  if (name === 'analytics') loadAnalytics();
+  if (name === 'pomodoro')  loadPomoView();
+  if (name === 'subjects')  loadSubjects();
+}
+</script>
+
+<script>
+/* ─── Greeting & Date ──────────────────────────────────────────────────── */
+function setGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const el = document.getElementById('sp-greeting');
+  if (el) el.textContent = `${greet}, ${currentUser ? currentUser : 'Student'} 👋`;
+  const dateEl = document.getElementById('sp-date');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+
+/* ─── User Load ────────────────────────────────────────────────────────── */
+async function loadUser() {
+  const username = document.getElementById('sp-username-input').value.trim();
+  if (!username) return showError('sp-dash-error', 'Enter a username to continue.');
+  const btn = document.getElementById('sp-load-btn');
+  setLoading(btn, true);
+  try {
+    let user;
+    try { user = await api('GET', `/users/${username}`); }
+    catch { user = await api('POST', '/users', { username, display_name: username, email: `${username}@studyflow.app` }); }
+    currentUser = username;
+    document.getElementById('sp-user-label').textContent = `👤 ${user.display_name}`;
+    setGreeting();
+    await preloadSubjects();
+    const activeView = document.querySelector('.sp-view--active');
+    if (activeView) refreshView(activeView.id.replace('sp-view-',''));
+  } catch (e) {
+    showError('sp-dash-error', `Could not load user: ${e.message}`);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ─── Pre-load Subjects ────────────────────────────────────────────────── */
+async function preloadSubjects() {
+  if (!currentUser) return;
+  try {
+    allSubjects = await api('GET', `/users/${currentUser}/subjects`);
+    populateSubjectDropdowns();
+  } catch { allSubjects = []; }
+}
+
+function populateSubjectDropdowns() {
+  const ids = ['sp-task-subject','sp-sess-subject'];
+  ids.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = id === 'sp-task-subject'
+      ? '<option value="">None</option>'
+      : '<option value="">Select subject…</option>';
+    allSubjects.forEach((s, i) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+    sel.value = prev;
+  });
+}
+
+function subjColor(subjectId) {
+  const idx = allSubjects.findIndex(s => s.id === subjectId);
+  const n = idx >= 0 ? idx % 10 : 0;
+  return getComputedStyle(document.documentElement).getPropertyValue(`--subj-${n}`).trim() || '#6c63ff';
+}
+
+function subjName(subjectId) {
+  const s = allSubjects.find(s => s.id === subjectId);
+  return s ? s.name : '—';
+}
+
+/* ─── Error & Loading Helpers ──────────────────────────────────────────── */
+function showError(containerId, msg, retryFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="sp-error-banner">
+    <span>⚠️ ${msg}</span>
+    ${retryFn ? `<button class="sp-error-banner__retry" onclick="(${retryFn.toString()})()">Retry</button>` : ''}
+  </div>`;
+}
+function clearError(containerId) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
+}
+
+function setLoading(btn, on) {
+  if (!btn) return;
+  if (on) {
+    btn._origText = btn.innerHTML;
+    btn.innerHTML = '<span class="sp-spinner"></span>';
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = btn._origText || btn.innerHTML;
+    btn.disabled = false;
+  }
+}
+
+/* ─── DASHBOARD ────────────────────────────────────────────────────────── */
+async function loadDashboard() {
+  setGreeting();
+  if (!currentUser) return;
+  clearError('sp-dash-error');
+  try {
+    const [summary, streak, pomoStats, tasks] = await Promise.all([
+      api('GET', `/users/${currentUser}/analytics/summary`),
+      api('GET', `/users/${currentUser}/analytics/streak`),
+      api('GET', `/users/${currentUser}/pomodoro/stats`),
+      api('GET', `/users/${currentUser}/tasks`)
+    ]);
+
+    // Stat cards
+    document.getElementById('sp-stats-grid').innerHTML = `
+      <div class="sp-stat sp-stat--total">
+        <div class="sp-stat__label">Total Tasks</div>
+        <div class="sp-stat__value">${summary.total_tasks}</div>
+      </div>
+      <div class="sp-stat sp-stat--completed">
+        <div class="sp-stat__label">Completed</div>
+        <div class="sp-stat__value">${summary.completed_tasks}</div>
+      </div>
+      <div class="sp-stat sp-stat--pending">
+        <div class="sp-stat__label">Pending</div>
+        <div class="sp-stat__value">${summary.pending_tasks}</div>
+      </div>
+      <div class="sp-stat sp-stat--overdue">
+        <div class="sp-stat__label">Overdue</div>
+        <div class="sp-stat__value">${summary.overdue_count}</div>
+      </div>`;
+
+    // Streak card
+    const streakPct = streak.longest_streak > 0
+      ? Math.round((streak.current_streak / streak.longest_streak) * 100) : 0;
+    document.getElementById('sp-streak-card').innerHTML = `
+      <div class="sp-streak__header">
+        <span class="sp-streak__icon">🔥</span>
+        <span class="sp-streak__title">Streak</span>
+      </div>
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:4px;">
+        Current: <strong style="color:var(--text-primary);">${streak.current_streak} days</strong>
+      </div>
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">
+        Longest: <strong style="color:var(--text-primary);">${streak.longest_streak} days</strong>
+      </div>
+      <div class="sp-bar sp-streak__bar">
+        <div class="sp-bar__fill" style="background:linear-gradient(90deg,#f97316,#ef4444);width:${streakPct}%;"></div>
+      </div>`;
+
+    // Today's focus
+    const todayMins = pomoStats.today_count * 25;
+    const todayH = Math.floor(todayMins / 60), todayM = todayMins % 60;
+    const todayStr = todayH > 0 ? `${todayH}h ${todayM}m` : `${todayM}m`;
+    document.getElementById('sp-focus-card').innerHTML = `
+      <div class="sp-streak__header">
+        <span class="sp-streak__icon">📅</span>
+        <span class="sp-streak__title">Today's Focus</span>
+      </div>
+      <div class="sp-focus__row">
+        <div class="sp-focus__stat">Study time today: <strong>${todayStr}</strong></div>
+        <div class="sp-focus__stat">Pomodoros today: <strong>${pomoStats.today_count}</strong></div>
+        <button class="sp-btn sp-btn--ghost sp-btn--sm" style="margin-top:8px;width:fit-content;"
+          onclick="switchView('pomodoro',document.querySelector('[data-view=pomodoro]'))">Start Pomodoro →</button>
+      </div>`;
+
+    // Recent tasks (last 5)
+    const recent = tasks.slice(0, 5);
+    if (!recent.length) {
+      document.getElementById('sp-recent-tasks').innerHTML =
+        '<div class="sp-empty"><div class="sp-empty__icon">📋</div><div class="sp-empty__title">No tasks yet</div></div>';
+    } else {
+      const now = new Date();
+      document.getElementById('sp-recent-tasks').innerHTML = recent.map(t => {
+        const isDone = t.status === 'done';
+        const isOverdue = !isDone && t.due_date && new Date(t.due_date) < now;
+        const dueStr = t.due_date ? fmtDate(t.due_date) : '';
+        return `<div class="sp-recent-task-row ${isDone ? 'sp-recent-task-row--done' : ''} ${isOverdue ? 'sp-recent-task-row--overdue' : ''}">
+          <span style="color:${isDone ? 'var(--status-done)' : 'var(--text-muted)'};font-size:1.1rem;">${isDone ? '✓' : '●'}</span>
+          <span class="sp-recent-task-row__title">${esc(t.title)}</span>
+          <span class="sp-badge sp-badge--${t.priority}">${t.priority}</span>
+          <span class="sp-badge sp-badge--cat">${t.category}</span>
+          ${dueStr ? `<span class="sp-recent-task-row__due">${isOverdue ? '⚠ ' : ''}${dueStr}</span>` : ''}
+        </div>`;
+      }).join('');
+    }
+  } catch (e) {
+    showError('sp-dash-error', `Failed to load dashboard. ${e.message}`, loadDashboard);
+  }
+}
+</script>
+
+<script>
+/* ─── TASKS VIEW ───────────────────────────────────────────────────────── */
+async function loadTasks() {
+  if (!currentUser) return;
+  clearError('sp-tasks-error');
+  try {
+    allTasks = await api('GET', `/users/${currentUser}/tasks`);
+    renderTasks();
+  } catch (e) {
+    showError('sp-tasks-error', `Failed to load tasks. ${e.message}`, loadTasks);
+  }
+}
+
+function filterTasks() {
+  renderTasks();
+}
+
+function renderTasks() {
+  const statusF   = document.getElementById('sp-filter-status')?.value || '';
+  const priorityF = document.getElementById('sp-filter-priority')?.value || '';
+  const categoryF = document.getElementById('sp-filter-category')?.value || '';
+  const searchF   = (document.getElementById('sp-filter-search')?.value || '').toLowerCase();
+
+  let tasks = allTasks.slice();
+  if (statusF)   tasks = tasks.filter(t => t.status === statusF);
+  if (priorityF) tasks = tasks.filter(t => t.priority === priorityF);
+  if (categoryF) tasks = tasks.filter(t => t.category === categoryF);
+  if (searchF)   tasks = tasks.filter(t =>
+    t.title.toLowerCase().includes(searchF) ||
+    (t.description && t.description.toLowerCase().includes(searchF))
+  );
+
+  const countEl = document.getElementById('sp-tasks-count');
+  if (countEl) countEl.textContent = `(${tasks.length})`;
+
+  const list = document.getElementById('sp-tasks-list');
+  if (!tasks.length) {
+    const hasFilters = statusF || priorityF || categoryF || searchF;
+    list.innerHTML = `<div class="sp-empty">
+      <div class="sp-empty__icon">${hasFilters ? '🔍' : '📋'}</div>
+      <div class="sp-empty__title">${hasFilters ? 'No tasks match your filters' : 'No tasks yet'}</div>
+      <div class="sp-empty__sub">${hasFilters ? '' : 'Create your first task to get started'}</div>
+      ${hasFilters
+        ? `<button class="sp-btn sp-btn--ghost sp-btn--sm" style="margin-top:12px;" onclick="clearFilters()">Clear Filters</button>`
+        : `<button class="sp-btn sp-btn--primary" style="margin-top:12px;" onclick="openPanel()">+ New Task</button>`}
+    </div>`;
+    return;
+  }
+
+  const now = new Date();
+  list.innerHTML = '';
+  tasks.forEach(t => {
+    const isDone    = t.status === 'done';
+    const isOverdue = !isDone && t.due_date && new Date(t.due_date) < now;
+    const card = buildTaskCard(t, isDone, isOverdue, now);
+    list.appendChild(card);
+  });
+}
+
+function clearFilters() {
+  ['sp-filter-status','sp-filter-priority','sp-filter-category'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const s = document.getElementById('sp-filter-search');
+  if (s) s.value = '';
+  renderTasks();
+}
+
+function buildTaskCard(t, isDone, isOverdue, now) {
+  const div = document.createElement('div');
+  div.className = `sp-task-card sp-task-card--${t.priority} ${isDone ? 'sp-task-card--done' : ''} ${isOverdue ? 'sp-task-card--overdue' : ''}`;
+  div.dataset.taskId = t.id;
+
+  const dueStr = t.due_date ? fmtDate(t.due_date) : '';
+  const subjDot = t.subject_id ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${subjColor(t.subject_id)};margin-right:4px;"></span>` : '';
+  const subjN = t.subject_id ? subjName(t.subject_id) : '';
+  const tagStr = t.tags && t.tags.length ? t.tags.map(tg => `<span class="sp-badge sp-badge--cat">${esc(tg)}</span>`).join(' ') : '';
+
+  div.innerHTML = `
+    <div class="sp-task-card__row1">
+      <span class="sp-badge sp-badge--${t.priority}">${t.priority}</span>
+      <span class="sp-task-card__title">${esc(t.title)}</span>
+      ${dueStr ? `<span class="sp-task-card__due ${isOverdue ? 'sp-task-card__due--overdue' : ''}">${isOverdue ? '⚠ ' : ''}${dueStr}</span>` : ''}
+    </div>
+    <div class="sp-task-card__row2">
+      <span class="sp-task-card__meta">${catIcon(t.category)} ${t.category}</span>
+      ${subjN ? `<span class="sp-task-card__meta">${subjDot}${esc(subjN)}</span>` : ''}
+      <span class="sp-badge sp-badge--${t.status}">${fmtStatus(t.status)}</span>
+      ${tagStr}
+      <div class="sp-task-card__actions">
+        ${t.status === 'todo' ? `<button class="sp-btn sp-btn--ghost sp-btn--sm" onclick="advanceTask('${t.id}','in_progress',this)">▶ Start</button>` : ''}
+        ${t.status === 'in_progress' ? `<button class="sp-btn sp-btn--ghost sp-btn--sm" onclick="advanceTask('${t.id}','done',this)" style="border-color:var(--status-done);color:var(--status-done);">✓ Done</button>` : ''}
+        ${isDone ? `<button class="sp-btn sp-btn--ghost sp-btn--sm" disabled style="border-color:var(--status-done);color:var(--status-done);">Completed</button>` : ''}
+        <button class="sp-btn sp-btn--ghost sp-btn--sm" onclick="deleteTask('${t.id}',this)" style="color:var(--danger);">🗑</button>
+        ${(t.subtask_count > 0 || true) ? `<button class="sp-btn sp-btn--ghost sp-btn--sm sp-subtask-toggle" onclick="toggleSubtasks('${t.id}',this)">▶ Subtasks</button>` : ''}
+      </div>
+    </div>
+    <div class="sp-subtask-list" id="sp-sub-${t.id}"></div>`;
+  return div;
+}
+
+async function toggleSubtasks(taskId, btn) {
+  const list = document.getElementById(`sp-sub-${taskId}`);
+  const isOpen = list.classList.contains('sp-subtask-list--open');
+  if (isOpen) {
+    list.classList.remove('sp-subtask-list--open');
+    btn.textContent = '▶ Subtasks';
+    return;
+  }
+  list.classList.add('sp-subtask-list--open');
+  btn.textContent = '▼ Subtasks';
+  try {
+    const subtasks = await api('GET', `/users/${currentUser}/tasks/${taskId}/subtasks`);
+    if (!subtasks.length) {
+      list.innerHTML = '<div class="sp-subtask-item" style="color:var(--text-muted);">No subtasks</div>';
+      return;
+    }
+    list.innerHTML = subtasks.map(s => `
+      <div class="sp-subtask-item ${s.done ? 'sp-subtask-item--done' : ''}">
+        <input type="checkbox" ${s.done ? 'checked' : ''}
+          onchange="toggleSubtask('${s.id}','${taskId}',this)"
+          aria-label="${esc(s.title)}" />
+        <span>${esc(s.title)}</span>
+      </div>`).join('');
+  } catch { list.innerHTML = '<div class="sp-subtask-item" style="color:var(--danger);">Failed to load subtasks</div>'; }
+}
+
+async function toggleSubtask(subtaskId, taskId, checkbox) {
+  try {
+    await api('PATCH', `/users/${currentUser}/tasks/${taskId}/subtasks/${subtaskId}/toggle`);
+    const item = checkbox.closest('.sp-subtask-item');
+    if (checkbox.checked) item.classList.add('sp-subtask-item--done');
+    else item.classList.remove('sp-subtask-item--done');
+  } catch { checkbox.checked = !checkbox.checked; }
+}
+
+async function advanceTask(taskId, newStatus, btn) {
+  setLoading(btn, true);
+  try {
+    const updated = await api('PATCH', `/users/${currentUser}/tasks/${taskId}/status`, { status: newStatus });
+    allTasks = allTasks.map(t => t.id === taskId ? updated : t);
+    renderTasks();
+  } catch (e) {
+    showError('sp-tasks-error', `Failed to update task: ${e.message}`);
+    setLoading(btn, false);
+  }
+}
+
+async function deleteTask(taskId, btn) {
+  if (btn._confirming) {
+    clearTimeout(btn._confirmTimer);
+    setLoading(btn, true);
+    try {
+      await api('DELETE', `/users/${currentUser}/tasks/${taskId}`);
+      allTasks = allTasks.filter(t => t.id !== taskId);
+      const card = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (card) { card.style.transition = 'opacity 200ms,max-height 200ms,margin 200ms,padding 200ms'; card.style.opacity='0'; card.style.maxHeight='0'; card.style.margin='0'; card.style.padding='0'; card.style.overflow='hidden'; setTimeout(() => card.remove(), 210); }
+      else renderTasks();
+    } catch (e) { showError('sp-tasks-error', `Delete failed: ${e.message}`); setLoading(btn, false); }
+    return;
+  }
+  btn._confirming = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = 'Confirm?';
+  btn.classList.add('sp-btn--danger');
+  btn.classList.remove('sp-btn--ghost');
+  btn._confirmTimer = setTimeout(() => {
+    btn._confirming = false;
+    btn.innerHTML = orig;
+    btn.classList.remove('sp-btn--danger');
+    btn.classList.add('sp-btn--ghost');
+  }, 3000);
+}
+</script>
+
+<script>
+/* ─── SLIDE-IN PANEL (Create/Edit Task) ────────────────────────────────── */
+function openPanel(taskId = null) {
+  editTaskId = taskId;
+  const panel = document.getElementById('sp-task-panel');
+  const overlay = document.getElementById('sp-overlay');
+  document.getElementById('sp-panel-title').textContent = taskId ? 'Edit Task' : 'New Task';
+  clearPanelErrors();
+  if (!taskId) {
+    document.getElementById('sp-task-title').value = '';
+    document.getElementById('sp-task-desc').value = '';
+    document.getElementById('sp-task-priority').value = 'medium';
+    document.getElementById('sp-task-category').value = '';
+    document.getElementById('sp-task-due').value = '';
+    document.getElementById('sp-task-subject').value = '';
+    document.getElementById('sp-task-tags').value = '';
+    document.getElementById('sp-subtask-inputs').innerHTML = '';
+  }
+  overlay.classList.add('sp-overlay--visible');
+  panel.classList.add('sp-panel--open');
+  document.getElementById('sp-task-title').focus();
+}
+
+function closePanel() {
+  document.getElementById('sp-task-panel').classList.remove('sp-panel--open');
+  document.getElementById('sp-overlay').classList.remove('sp-overlay--visible');
+  editTaskId = null;
+}
+
+function clearPanelErrors() {
+  ['sp-title-err','sp-priority-err','sp-category-err'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('sp-field-error--visible');
+  });
+  ['sp-task-title','sp-task-priority','sp-task-category'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('sp-input--error');
+  });
+  clearError('sp-panel-error');
+}
+
+function addSubtaskInput(value = '') {
+  const container = document.getElementById('sp-subtask-inputs');
+  const row = document.createElement('div');
+  row.className = 'sp-subtask-input-row';
+  row.innerHTML = `<input class="sp-input" type="text" placeholder="Subtask…" value="${esc(value)}" maxlength="256" />
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" onclick="this.closest('.sp-subtask-input-row').remove()" aria-label="Remove subtask">✕</button>`;
+  container.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+async function saveTask() {
+  let valid = true;
+  clearPanelErrors();
+  const title = document.getElementById('sp-task-title').value.trim();
+  const priority = document.getElementById('sp-task-priority').value;
+  const category = document.getElementById('sp-task-category').value;
+  if (!title) {
+    document.getElementById('sp-task-title').classList.add('sp-input--error');
+    document.getElementById('sp-title-err').classList.add('sp-field-error--visible');
+    valid = false;
+  }
+  if (!priority) {
+    document.getElementById('sp-task-priority').classList.add('sp-input--error');
+    document.getElementById('sp-priority-err').classList.add('sp-field-error--visible');
+    valid = false;
+  }
+  if (!category) {
+    document.getElementById('sp-task-category').classList.add('sp-input--error');
+    document.getElementById('sp-category-err').classList.add('sp-field-error--visible');
+    valid = false;
+  }
+  if (!valid) return;
+
+  const btn = document.getElementById('sp-save-task-btn');
+  setLoading(btn, true);
+
+  const dueRaw = document.getElementById('sp-task-due').value;
+  const tagsRaw = document.getElementById('sp-task-tags').value;
+  const payload = {
+    title,
+    description: document.getElementById('sp-task-desc').value.trim() || null,
+    priority,
+    category,
+    subject_id: document.getElementById('sp-task-subject').value || null,
+    due_date: dueRaw ? new Date(dueRaw).toISOString() : null,
+    tags: tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(Boolean) : []
+  };
+
+  try {
+    let saved;
+    if (editTaskId) {
+      saved = await api('PUT', `/users/${currentUser}/tasks/${editTaskId}`, payload);
+      allTasks = allTasks.map(t => t.id === editTaskId ? saved : t);
+    } else {
+      saved = await api('POST', `/users/${currentUser}/tasks`, payload);
+      allTasks.unshift(saved);
+
+      // Create subtasks
+      const inputs = document.querySelectorAll('#sp-subtask-inputs .sp-subtask-input-row input');
+      for (const inp of inputs) {
+        const stTitle = inp.value.trim();
+        if (stTitle) await api('POST', `/users/${currentUser}/tasks/${saved.id}/subtasks`, { title: stTitle }).catch(() => {});
+      }
+    }
+    closePanel();
+    renderTasks();
+  } catch (e) {
+    showError('sp-panel-error', `Failed to save task: ${e.message}`);
+    setLoading(btn, false);
+  }
+}
+
+/* ─── STUDY SESSIONS ───────────────────────────────────────────────────── */
+async function loadSessions() {
+  if (!currentUser) return;
+  clearError('sp-sessions-error');
+  await preloadSubjects();
+  try {
+    const [sessions, summary] = await Promise.all([
+      api('GET', `/users/${currentUser}/study-sessions`),
+      api('GET', `/users/${currentUser}/study-sessions/summary`)
+    ]);
+    renderSessionSummary(summary);
+    renderSessionsBySubject(summary);
+    renderSessionsList(sessions);
+  } catch (e) {
+    showError('sp-sessions-error', `Failed to load sessions. ${e.message}`, loadSessions);
+  }
+}
+
+function renderSessionSummary(s) {
+  const h = Math.floor(s.total_hours);
+  const m = Math.round((s.total_hours - h) * 60);
+  document.getElementById('sp-sess-summary').innerHTML = `
+    <h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:10px;">Total Study Time</h3>
+    <div style="font-size:var(--text-2xl);font-weight:700;color:var(--accent);">${h}h ${m}m</div>
+    <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:4px;">${s.total_sessions} sessions logged</div>`;
+  const countEl = document.getElementById('sp-sess-count');
+  if (countEl) countEl.textContent = `(${s.total_sessions})`;
+}
+
+function renderSessionsBySubject(s) {
+  const el = document.getElementById('sp-sess-by-subject');
+  if (!s.hours_per_subject || !s.hours_per_subject.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:var(--text-sm);padding:8px 0;">No subject data yet</div>';
+    return;
+  }
+  const maxH = Math.max(...s.hours_per_subject.map(r => r.total_hours), 0.001);
+  const rows = s.hours_per_subject.slice(0, 10).map((r, i) => {
+    const pct = Math.round((r.total_hours / maxH) * 100);
+    const color = getComputedStyle(document.documentElement).getPropertyValue(`--subj-${i % 10}`).trim();
+    const h = Math.floor(r.total_hours);
+    const m = Math.round((r.total_hours - h) * 60);
+    return `<div class="sp-bar-row">
+      <div class="sp-bar-row__dot" style="background:${color};"></div>
+      <div class="sp-bar-row__label">${esc(r.subject_name)}</div>
+      <div class="sp-bar-row__track sp-bar" style="height:8px;">
+        <div class="sp-bar__fill" style="background:${color};width:0%;" data-target="${pct}"></div>
+      </div>
+      <div class="sp-bar-row__time">${h}h ${m}m</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:10px;">By Subject</h3>${rows}`;
+  setTimeout(() => animateBars(el), 50);
+}
+
+function renderSessionsList(sessions) {
+  const el = document.getElementById('sp-sessions-list');
+  if (!sessions.length) {
+    el.innerHTML = `<div class="sp-empty">
+      <div class="sp-empty__icon">📚</div>
+      <div class="sp-empty__title">No sessions logged yet</div>
+      <div class="sp-empty__sub">Log your first study session above</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = sessions.map((s, i) => {
+    const color = subjColor(s.subject_id);
+    const name = subjName(s.subject_id);
+    const dur = fmtDuration(s.duration_minutes);
+    const ts = fmtSessionTime(s.created_at);
+    return `<div class="sp-session-row" id="sp-sess-row-${s.id}">
+      <div class="sp-session-row__line1">
+        <div class="sp-session-row__dot" style="background:${color};"></div>
+        <div class="sp-session-row__subj" style="color:${color};">${esc(name)}</div>
+        <div class="sp-session-row__dur">${dur}</div>
+        <div class="sp-session-row__ts">${ts}</div>
+        <div class="sp-session-row__actions">
+          <button class="sp-btn sp-btn--ghost sp-btn--icon" onclick="deleteSession('${s.id}',this)" aria-label="Delete session">🗑</button>
+        </div>
+      </div>
+      ${s.notes ? `<div class="sp-session-row__notes">"${esc(s.notes)}"</div>` : ''}
+    </div>`;
+  }).join('');
+}
+</script>
+
+<script>
+async function saveSession() {
+  const subjectId = document.getElementById('sp-sess-subject').value;
+  const durVal    = parseInt(document.getElementById('sp-sess-dur').value || '0');
+  let valid = true;
+
+  document.getElementById('sp-sess-subj-err').classList.remove('sp-field-error--visible');
+  document.getElementById('sp-sess-dur-err').classList.remove('sp-field-error--visible');
+  document.getElementById('sp-sess-subject').classList.remove('sp-input--error');
+  document.getElementById('sp-sess-dur').classList.remove('sp-input--error');
+
+  if (!subjectId) {
+    document.getElementById('sp-sess-subject').classList.add('sp-input--error');
+    document.getElementById('sp-sess-subj-err').classList.add('sp-field-error--visible');
+    valid = false;
+  }
+  if (!durVal || durVal < 1 || durVal > 480) {
+    document.getElementById('sp-sess-dur').classList.add('sp-input--error');
+    document.getElementById('sp-sess-dur-err').classList.add('sp-field-error--visible');
+    valid = false;
+  }
+  if (!valid) return;
+
+  const btn = document.getElementById('sp-sess-save-btn');
+  setLoading(btn, true);
+  try {
+    await api('POST', `/users/${currentUser}/study-sessions`, {
+      subject_id: subjectId,
+      duration_minutes: durVal,
+      notes: document.getElementById('sp-sess-notes').value.trim() || null
+    });
+    document.getElementById('sp-sess-dur').value = '';
+    document.getElementById('sp-sess-notes').value = '';
+    // Green flash on form
+    const formEl = btn.closest('.sp-card');
+    if (formEl) { formEl.style.animation = 'greenFlash 300ms ease'; setTimeout(() => formEl.style.animation = '', 300); }
+    await loadSessions();
+  } catch (e) {
+    showError('sp-sessions-error', `Failed to save session: ${e.message}`);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+async function deleteSession(sessionId, btn) {
+  if (btn._confirming) {
+    clearTimeout(btn._confirmTimer);
+    const row = document.getElementById(`sp-sess-row-${sessionId}`);
+    try {
+      // Try DELETE; if backend doesn't support it, show inline error
+      const res = await fetch(`/users/${currentUser}/study-sessions/${sessionId}`, { method: 'DELETE' });
+      if (res.status === 404 || res.status === 405) throw new Error('Delete not supported');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (row) { row.style.transition = 'opacity 200ms'; row.style.opacity = '0'; setTimeout(() => { row.remove(); }, 210); }
+      await loadSessions();
+    } catch (e) {
+      btn._confirming = false;
+      btn.innerHTML = '🗑';
+      btn.classList.remove('sp-btn--danger');
+      btn.style.width = '';
+      const errEl = btn.closest('.sp-session-row__actions');
+      if (errEl) { const msg = document.createElement('span'); msg.textContent = 'Delete failed.'; msg.style.cssText='color:var(--danger);font-size:var(--text-xs);'; errEl.appendChild(msg); setTimeout(() => msg.remove(), 3000); }
+    }
+    return;
+  }
+  btn._confirming = true;
+  btn.innerHTML = 'Confirm?';
+  btn.classList.add('sp-btn--danger');
+  btn.style.width = '80px';
+  btn._confirmTimer = setTimeout(() => {
+    btn._confirming = false;
+    btn.innerHTML = '🗑';
+    btn.classList.remove('sp-btn--danger');
+    btn.style.width = '';
+  }, 3000);
+}
+
+/* ─── ANALYTICS ────────────────────────────────────────────────────────── */
+async function loadAnalytics() {
+  if (!currentUser) return;
+  clearError('sp-analytics-error');
+  try {
+    const [summary, bycat, byprio, studyHours, streak] = await Promise.all([
+      api('GET', `/users/${currentUser}/analytics/summary`),
+      api('GET', `/users/${currentUser}/analytics/by-category`),
+      api('GET', `/users/${currentUser}/analytics/by-priority`),
+      api('GET', `/users/${currentUser}/analytics/study-hours`),
+      api('GET', `/users/${currentUser}/analytics/streak`)
+    ]);
+
+    // Completion rate bar
+    const pct = summary.completion_rate_pct;
+    document.getElementById('sp-completion-card').innerHTML = `
+      <h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">Task Completion Rate</h3>
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div style="font-size:var(--text-xl);font-weight:700;color:var(--accent);min-width:56px;">${pct}%</div>
+        <div class="sp-bar sp-completion-bar" style="flex:1;height:14px;">
+          <div class="sp-bar__fill" data-target="${pct}" style="background:linear-gradient(90deg,var(--accent),#06b6d4);width:0%;transition:width 800ms ease-out;"></div>
+        </div>
+        <div style="font-size:var(--text-sm);color:var(--text-secondary);">${summary.completed_tasks} of ${summary.total_tasks} tasks</div>
+      </div>`;
+    setTimeout(() => animateBars(document.getElementById('sp-completion-card')), 50);
+
+    // Category chart
+    const catColors = { study: '#6c63ff', project: '#06b6d4', exam: '#ef4444', personal: '#22c55e' };
+    const maxCat = Math.max(...bycat.map(c => c.count), 1);
+    document.getElementById('sp-cat-chart').innerHTML = `
+      <h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">By Category</h3>` +
+      bycat.map(c => `<div class="sp-analytics-row">
+        <div class="sp-analytics-row__label">${c.category}</div>
+        <div class="sp-analytics-row__track sp-bar" style="height:10px;">
+          <div class="sp-bar__fill" style="background:${catColors[c.category]||'var(--accent)'};width:0%;" data-target="${Math.round(c.count/maxCat*100)}"></div>
+        </div>
+        <div class="sp-analytics-row__count">${c.count} tasks</div>
+      </div>`).join('');
+    setTimeout(() => animateBars(document.getElementById('sp-cat-chart')), 80);
+
+    // Priority chart
+    const prioColors = { urgent: '#ef4444', high: '#f97316', medium: '#eab308', low: '#22c55e' };
+    const maxPrio = Math.max(...byprio.map(p => p.count), 1);
+    document.getElementById('sp-prio-chart').innerHTML = `
+      <h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">By Priority</h3>` +
+      byprio.map(p => `<div class="sp-analytics-row">
+        <div class="sp-analytics-row__label">${p.priority}</div>
+        <div class="sp-analytics-row__track sp-bar" style="height:10px;">
+          <div class="sp-bar__fill" style="background:${prioColors[p.priority]||'var(--accent)'};width:0%;" data-target="${Math.round(p.count/maxPrio*100)}"></div>
+        </div>
+        <div class="sp-analytics-row__count">${p.count} tasks</div>
+      </div>`).join('');
+    setTimeout(() => animateBars(document.getElementById('sp-prio-chart')), 120);
+
+    // Study hours by subject
+    const maxSH = Math.max(...(studyHours.by_subject.map(s => s.total_hours) || [0.001]), 0.001);
+    document.getElementById('sp-study-hours-chart').innerHTML = `
+      <h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">Study Hours by Subject</h3>` +
+      (studyHours.by_subject.length ? studyHours.by_subject.map((s, i) => {
+        const color = getComputedStyle(document.documentElement).getPropertyValue(`--subj-${i%10}`).trim();
+        const h = Math.floor(s.total_hours), m = Math.round((s.total_hours-h)*60);
+        return `<div class="sp-analytics-row">
+          <div class="sp-analytics-row__label">${esc(s.subject_name)}</div>
+          <div class="sp-analytics-row__track sp-bar" style="height:10px;">
+            <div class="sp-bar__fill" style="background:${color};width:0%;" data-target="${Math.round(s.total_hours/maxSH*100)}"></div>
+          </div>
+          <div class="sp-analytics-row__count">${h}h ${m}m</div>
+        </div>`;
+      }).join('') : '<div style="color:var(--text-muted);font-size:var(--text-sm);">No study sessions yet</div>');
+    setTimeout(() => animateBars(document.getElementById('sp-study-hours-chart')), 160);
+
+    // Streak & productivity
+    document.getElementById('sp-streak-panel').innerHTML = `
+      <h3 style="font-size:var(--text-md);font-weight:600;margin-bottom:12px;">Streak & Productivity</h3>
+      <div class="sp-streak-panel__item">🔥 Current streak <strong>${streak.current_streak} days</strong></div>
+      <div class="sp-streak-panel__item">🏆 Longest streak <strong>${streak.longest_streak} days</strong></div>
+      <div class="sp-streak-panel__item">📅 Overdue tasks <strong>${summary.overdue_count}</strong></div>
+      <div class="sp-streak-panel__item">⏱ Total study <strong>${studyHours.total_study_hours}h</strong></div>`;
+  } catch (e) {
+    showError('sp-analytics-error', `Failed to load analytics. ${e.message}`, loadAnalytics);
+  }
+}
+
+function animateBars(container) {
+  if (!container) return;
+  container.querySelectorAll('.sp-bar__fill[data-target]').forEach(el => {
+    el.style.width = (el.dataset.target || 0) + '%';
+  });
+}
+</script>
+
+<script>
+/* ─── POMODORO ─────────────────────────────────────────────────────────── */
+async function loadPomoView() {
+  if (!currentUser) return;
+  await populatePomoTasks();
+  await loadPomoStats();
+}
+
+async function populatePomoTasks() {
+  if (!currentUser) return;
+  try {
+    const tasks = await api('GET', `/users/${currentUser}/tasks?status=in_progress`);
+    const sel = document.getElementById('sp-pomo-task');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select a task…</option>';
+    tasks.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.title.length > 50 ? t.title.slice(0,47)+'…' : t.title;
+      sel.appendChild(opt);
+    });
+    sel.onchange = updatePomoLinked;
+  } catch { /* non-critical */ }
+}
+
+function updatePomoLinked() {
+  const sel = document.getElementById('sp-pomo-task');
+  const row = document.getElementById('sp-pomo-linked-row');
+  const title = document.getElementById('sp-pomo-linked-title');
+  if (sel.value) {
+    const text = sel.selectedOptions[0].textContent;
+    row.style.display = 'flex';
+    title.textContent = text;
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+async function loadPomoStats() {
+  if (!currentUser) return;
+  try {
+    const s = await api('GET', `/users/${currentUser}/pomodoro/stats`);
+    const todayEl = document.getElementById('sp-pomo-today');
+    const minsEl  = document.getElementById('sp-pomo-mins');
+    if (todayEl) todayEl.textContent = s.today_count;
+    if (minsEl)  minsEl.textContent  = s.today_count * 25;
+  } catch { /* non-critical */ }
+}
+
+function pomoUpdateArc() {
+  const arc = document.getElementById('sp-pomo-arc');
+  if (!arc) return;
+  const total = 25 * 60;
+  const fraction = pomoRemaining / total;
+  arc.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - fraction));
+
+  const timeEl = document.getElementById('sp-pomo-display');
+  const labelEl = document.getElementById('sp-pomo-sublabel');
+
+  // Color state
+  if (pomoState === 'idle') {
+    arc.style.stroke = 'var(--accent)';
+    if (labelEl) labelEl.textContent = 'Focus time';
+    if (timeEl) timeEl.classList.remove('sp-timer__time--warning');
+  } else if (pomoState === 'running' || pomoState === 'paused') {
+    if (pomoRemaining < 60) {
+      arc.style.stroke = 'var(--danger)';
+      if (timeEl) timeEl.classList.add('sp-timer__time--warning');
+    } else {
+      arc.style.stroke = 'var(--accent)';
+      if (timeEl) timeEl.classList.remove('sp-timer__time--warning');
+    }
+    if (labelEl) labelEl.textContent = pomoState === 'paused' ? 'Paused' : 'Focus time';
+  }
+}
+
+function pomoUpdateDisplay() {
+  const mm = String(Math.floor(pomoRemaining / 60)).padStart(2,'0');
+  const ss = String(pomoRemaining % 60).padStart(2,'0');
+  const el = document.getElementById('sp-pomo-display');
+  if (el) el.textContent = `${mm}:${ss}`;
+}
+
+function pomoBtnClick() {
+  if (pomoState === 'idle')   startPomodoro();
+  else if (pomoState === 'running') pausePomodoro();
+  else if (pomoState === 'paused')  resumePomodoro();
+}
+
+async function startPomodoro() {
+  if (!currentUser) return;
+  const taskId = document.getElementById('sp-pomo-task')?.value || null;
+  const mainBtn = document.getElementById('sp-pomo-main-btn');
+  setLoading(mainBtn, true);
+  try {
+    const session = await api('POST', `/users/${currentUser}/pomodoro/start`, { task_id: taskId || null });
+    pomoSessionId = session.id;
+    pomoState = 'running';
+    pomoRemaining = 25 * 60;
+
+    // Update UI
+    mainBtn.innerHTML = 'Pause';
+    mainBtn.disabled = false;
+    document.getElementById('sp-pomo-complete-btn').style.display = 'inline-flex';
+    document.getElementById('sp-pomo-reset-btn').disabled = false;
+    document.getElementById('sp-pomo-task').disabled = true;
+
+    // Pulsing red dot in tab
+    document.getElementById('sp-pomo-dot').classList.add('sp-tab__dot--visible');
+
+    pomoUpdateArc();
+    pomoInterval = setInterval(() => {
+      if (pomoState !== 'running') return;
+      pomoRemaining = Math.max(0, pomoRemaining - 1);
+      pomoUpdateDisplay();
+      pomoUpdateArc();
+      if (pomoRemaining === 0) {
+        clearInterval(pomoInterval);
+        pomoInterval = null;
+        autoCompletePomodoro();
+      }
+    }, 1000);
+  } catch (e) {
+    showError('sp-analytics-error', e.message);
+    setLoading(mainBtn, false);
+  }
+}
+
+function pausePomodoro() {
+  pomoState = 'paused';
+  document.getElementById('sp-pomo-main-btn').textContent = 'Resume';
+  pomoUpdateArc();
+}
+
+function resumePomodoro() {
+  pomoState = 'running';
+  document.getElementById('sp-pomo-main-btn').textContent = 'Pause';
+  pomoUpdateArc();
+}
+
+async function completePomodoro() {
+  if (!pomoSessionId || !currentUser) return;
+  clearInterval(pomoInterval);
+  pomoInterval = null;
+  const mainBtn = document.getElementById('sp-pomo-main-btn');
+  setLoading(mainBtn, true);
+  try {
+    await api('POST', `/users/${currentUser}/pomodoro/${pomoSessionId}/complete`);
+    pomodoroDoneFlash();
+    await loadPomoStats();
+  } catch (e) {
+    showError('sp-sessions-error', `Failed to complete pomodoro: ${e.message}`);
+  }
+  pomoReset();
+}
+
+async function autoCompletePomodoro() {
+  if (!pomoSessionId || !currentUser) return;
+  try {
+    await api('POST', `/users/${currentUser}/pomodoro/${pomoSessionId}/complete`);
+    await loadPomoStats();
+  } catch { /* best effort */ }
+  pomodoroDoneFlash();
+  pomoReset();
+}
+
+function pomodoroDoneFlash() {
+  const arc = document.getElementById('sp-pomo-arc');
+  const timeEl = document.getElementById('sp-pomo-display');
+  const labelEl = document.getElementById('sp-pomo-sublabel');
+  if (arc) arc.style.stroke = '#22c55e';
+  if (timeEl) { timeEl.textContent = 'Done! 🎉'; timeEl.classList.remove('sp-timer__time--warning'); }
+  if (labelEl) labelEl.textContent = 'Great work!';
+  setTimeout(() => {
+    if (timeEl) timeEl.textContent = '25:00';
+    if (labelEl) labelEl.textContent = 'Focus time';
+  }, 1500);
+}
+
+function pomoReset() {
+  pomoState = 'idle';
+  pomoSessionId = null;
+  pomoRemaining = 25 * 60;
+  const mainBtn = document.getElementById('sp-pomo-main-btn');
+  mainBtn.textContent = 'Start';
+  mainBtn.disabled = false;
+  document.getElementById('sp-pomo-complete-btn').style.display = 'none';
+  document.getElementById('sp-pomo-reset-btn').disabled = true;
+  document.getElementById('sp-pomo-task').disabled = false;
+  document.getElementById('sp-pomo-dot').classList.remove('sp-tab__dot--visible');
+  pomoUpdateDisplay();
+  pomoUpdateArc();
+}
+
+function resetPomodoro() {
+  const btn = document.getElementById('sp-pomo-reset-btn');
+  if (btn._confirming) {
+    clearTimeout(btn._confirmTimer);
+    clearInterval(pomoInterval);
+    pomoInterval = null;
+    // Don't log session on manual reset
+    pomoReset();
+    return;
+  }
+  btn._confirming = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Reset?';
+  btn._confirmTimer = setTimeout(() => {
+    btn._confirming = false;
+    btn.textContent = orig;
+  }, 3000);
+}
+</script>
+
+<script>
+/* ─── SUBJECTS ─────────────────────────────────────────────────────────── */
+async function loadSubjects() {
+  if (!currentUser) return;
+  clearError('sp-subjects-error');
+  try {
+    allSubjects = await api('GET', `/users/${currentUser}/subjects`);
+    populateSubjectDropdowns();
+    renderSubjectsList();
+  } catch (e) {
+    showError('sp-subjects-error', `Failed to load subjects. ${e.message}`, loadSubjects);
+  }
+}
+
+function renderSubjectsList() {
+  const el = document.getElementById('sp-subjects-list');
+  const countEl = document.getElementById('sp-subj-count');
+  if (countEl) countEl.textContent = `(${allSubjects.length})`;
+
+  if (!allSubjects.length) {
+    el.innerHTML = `<div class="sp-empty">
+      <div class="sp-empty__icon">🏷️</div>
+      <div class="sp-empty__title">No subjects yet</div>
+      <div class="sp-empty__sub">Add subjects to organize your tasks and sessions</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = allSubjects.map((s, i) => {
+    const color = getComputedStyle(document.documentElement).getPropertyValue(`--subj-${i%10}`).trim();
+    return `<div class="sp-subject-item" id="sp-subj-row-${s.id}">
+      <div class="sp-subject-item__dot" style="background:${color};"></div>
+      <div class="sp-subject-item__name">${esc(s.name)}</div>
+      <button class="sp-btn sp-btn--ghost sp-btn--icon sp-subject-item__del"
+        onclick="deleteSubject('${s.id}',this)" aria-label="Delete ${esc(s.name)}">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+async function addSubject() {
+  const nameInput = document.getElementById('sp-subj-name');
+  const nameErr   = document.getElementById('sp-subj-name-err');
+  const name = nameInput.value.trim();
+  nameErr.classList.remove('sp-field-error--visible');
+  nameInput.classList.remove('sp-input--error');
+  if (!name) {
+    nameInput.classList.add('sp-input--error');
+    nameErr.classList.add('sp-field-error--visible');
+    return;
+  }
+  const btn = document.getElementById('sp-subj-add-btn');
+  setLoading(btn, true);
+  try {
+    await api('POST', `/users/${currentUser}/subjects`, { name });
+    nameInput.value = '';
+    await loadSubjects();
+  } catch (e) {
+    showError('sp-subjects-error', `Failed to add subject: ${e.message}`);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+async function deleteSubject(subjId, btn) {
+  if (btn._confirming) {
+    clearTimeout(btn._confirmTimer);
+    const row = document.getElementById(`sp-subj-row-${subjId}`);
+    try {
+      await api('DELETE', `/users/${currentUser}/subjects/${subjId}`);
+      if (row) { row.style.transition = 'opacity 200ms'; row.style.opacity = '0'; setTimeout(() => row.remove(), 210); }
+      allSubjects = allSubjects.filter(s => s.id !== subjId);
+      populateSubjectDropdowns();
+      const countEl = document.getElementById('sp-subj-count');
+      if (countEl) countEl.textContent = `(${allSubjects.length})`;
+    } catch (e) {
+      showError('sp-subjects-error', `Delete failed. Try again.`);
+      btn._confirming = false;
+      btn.innerHTML = '🗑';
+      btn.classList.remove('sp-btn--danger');
+    }
+    return;
+  }
+  btn._confirming = true;
+  btn.innerHTML = 'Confirm?';
+  btn.style.width = '80px';
+  btn.classList.add('sp-btn--danger');
+  btn.classList.remove('sp-btn--ghost');
+  btn._confirmTimer = setTimeout(() => {
+    btn._confirming = false;
+    btn.innerHTML = '🗑';
+    btn.style.width = '';
+    btn.classList.remove('sp-btn--danger');
+    btn.classList.add('sp-btn--ghost');
+  }, 3000);
+}
+
+/* ─── Utility / Formatting Helpers ────────────────────────────────────── */
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d)) return '';
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
+function fmtDuration(minutes) {
+  if (!minutes) return '0m';
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function fmtSessionTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const today = new Date();
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const timeStr = d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  if (d.toDateString() === today.toDateString())     return `Today, ${timeStr}`;
+  if (d.toDateString() === yesterday.toDateString()) return `Yesterday, ${timeStr}`;
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) + `, ${timeStr}`;
+}
+
+function fmtStatus(s) {
+  const map = { todo: 'To-Do', in_progress: 'In Progress', done: 'Done' };
+  return map[s] || s;
+}
+
+function catIcon(cat) {
+  const icons = { study: '📚', personal: '😊', project: '🗂', exam: '📝' };
+  return icons[cat] || '📌';
+}
+
+/* ─── IntersectionObserver for Analytics charts ────────────────────────── */
+const analyticsObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animateBars(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+function observeAnalyticsCards() {
+  ['sp-completion-card','sp-cat-chart','sp-prio-chart','sp-study-hours-chart'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) analyticsObserver.observe(el);
+  });
+}
+
+/* ─── Init ─────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  setGreeting();
+  observeAnalyticsCards();
+  // Handle mobile: hide long tab labels
+  const mq = window.matchMedia('(max-width: 767px)');
+  function handleMobile(e) {
+    document.querySelectorAll('.sp-tab').forEach(tab => {
+      const mob = tab.querySelector('.sp-tab__mob-label');
+      if (mob) {
+        // On mobile show only the mobile abbreviation
+        // (the full label is the text node after the span)
+        if (e.matches) {
+          const nodes = [...tab.childNodes].filter(n => n.nodeType === Node.TEXT_NODE);
+          nodes.forEach(n => { n._orig = n._orig || n.textContent; n.textContent = ''; });
+        } else {
+          const nodes = [...tab.childNodes].filter(n => n.nodeType === Node.TEXT_NODE);
+          nodes.forEach(n => { if (n._orig) n.textContent = n._orig; });
+        }
+      }
+    });
+  }
+  mq.addListener(handleMobile);
+  handleMobile(mq);
+});
+</script>
+</body>
+</html>
